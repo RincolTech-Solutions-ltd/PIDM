@@ -3186,6 +3186,10 @@ class PIDM(QMainWindow):
         about_action = QAction(self.tr("&About PIDM"), self)
         about_action.triggered.connect(self.show_about_dialog)
         help_menu.addAction(about_action)
+        help_menu.addSeparator()
+        ext_action = QAction(self.tr("🧩 Install Browser Extension"), self)
+        ext_action.triggered.connect(self.show_extension_dialog)
+        help_menu.addAction(ext_action)
 
     def setup_tray_icon(self):
         if not QSystemTrayIcon.isSystemTrayAvailable():
@@ -4513,6 +4517,85 @@ class PIDM(QMainWindow):
 
         layout.addWidget(button_box)
         about_dialog.exec()
+
+    def show_extension_dialog(self):
+        ext_path = str(Path(__file__).parent / "browser-extension")
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.tr("Install Browser Extension"))
+        dialog.setMinimumWidth(480)
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(12)
+        layout.setContentsMargins(18, 18, 18, 18)
+
+        title = QLabel("<b style='font-size:15px;'>🧩 PIDM Browser Extension</b>")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        desc = QLabel(self.tr(
+            "The browser extension lets PIDM automatically capture download links,\n"
+            "including YouTube videos, directly from your browser."
+        ))
+        desc.setWordWrap(True)
+        desc.setAlignment(Qt.AlignCenter)
+        layout.addWidget(desc)
+
+        # Extension path
+        path_label = QLabel(self.tr("Extension folder:"))
+        layout.addWidget(path_label)
+
+        path_row = QHBoxLayout()
+        path_box = QLineEdit(ext_path)
+        path_box.setReadOnly(True)
+        path_row.addWidget(path_box)
+        copy_btn = QPushButton(self.tr("Copy"))
+        copy_btn.setFixedWidth(60)
+        copy_btn.clicked.connect(lambda: QApplication.clipboard().setText(ext_path))
+        path_row.addWidget(copy_btn)
+        layout.addLayout(path_row)
+
+        layout.addWidget(QLabel("<hr>"))
+
+        # Browser buttons
+        browsers_label = QLabel(self.tr("<b>Open your browser's extension page:</b>"))
+        layout.addWidget(browsers_label)
+
+        btn_layout = QHBoxLayout()
+
+        chrome_btn = QPushButton("🌐 Chrome")
+        chrome_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("chrome://extensions")))
+        btn_layout.addWidget(chrome_btn)
+
+        edge_btn = QPushButton("🌀 Edge")
+        edge_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("edge://extensions")))
+        btn_layout.addWidget(edge_btn)
+
+        firefox_btn = QPushButton("🦊 Firefox")
+        firefox_btn.clicked.connect(lambda: QDesktopServices.openUrl(
+            QUrl("about:debugging#/runtime/this-firefox")))
+        btn_layout.addWidget(firefox_btn)
+
+        layout.addLayout(btn_layout)
+
+        steps = QLabel(self.tr(
+            "<b>Chrome / Edge steps:</b><br>"
+            "1. Click the button above to open extensions page<br>"
+            "2. Enable <b>Developer mode</b> (top right toggle)<br>"
+            "3. Click <b>Load unpacked</b><br>"
+            "4. Select the folder path shown above<br><br>"
+            "<b>Firefox steps:</b><br>"
+            "1. Click Firefox button above<br>"
+            "2. Click <b>Load Temporary Add-on</b><br>"
+            "3. Select <b>manifest.json</b> inside the folder above"
+        ))
+        steps.setWordWrap(True)
+        layout.addWidget(steps)
+
+        close_btn = QDialogButtonBox(QDialogButtonBox.Ok)
+        close_btn.accepted.connect(dialog.accept)
+        layout.addWidget(close_btn)
+
+        dialog.exec()
 
     def check_for_updates_manual(self):
         self.thread = UpdateCheckThread(self.app_version, self)
