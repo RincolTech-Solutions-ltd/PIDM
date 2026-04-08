@@ -3051,13 +3051,7 @@ class PIDM(QMainWindow):
         )
         self.report_bug_action.setToolTip(self.tr("Report a bug or suggest a feature"))
 
-        self.donate_action = QAction(self.tr("Donate"), self)
-        self.donate_action.triggered.connect(
-            lambda: QDesktopServices.openUrl(QUrl("https://www.saeedmasoudie.ir/donate.html"))
-        )
-        self.donate_action.setToolTip(self.tr("Support the project by a simple donate"))
         toolbar.addAction(self.report_bug_action)
-        toolbar.addAction(self.donate_action)
 
         self.init_menubar()
 
@@ -4411,7 +4405,6 @@ class PIDM(QMainWindow):
             "cancel":             QColor("#FF9800"),   # orange – Cancel D/L
             "hand-stop":          QColor("#F44336"),   # red    – Stop All
             "bug":                QColor("#FFC107"),   # amber  – Report Bugs
-            "donate":             QColor("#E91E63"),   # pink   – Donate
         }
 
         def icon(path, icon_key, enabled):
@@ -4432,7 +4425,6 @@ class PIDM(QMainWindow):
         self.stop_all_action.setIcon(
             icon(get_asset_path("assets/icons/hand-stop.svg"), "hand-stop", self.stop_all_action.isEnabled()))
         self.report_bug_action.setIcon(icon(get_asset_path("assets/icons/bug.svg"), "bug", self.report_bug_action.isEnabled()))
-        self.donate_action.setIcon(icon(get_asset_path("assets/icons/donate.svg"), "donate", self.donate_action.isEnabled()))
 
     def show_options_dialog(self):
         QMessageBox.information(self, self.tr("Options"), self.tr("Options dialog is not yet implemented."))
