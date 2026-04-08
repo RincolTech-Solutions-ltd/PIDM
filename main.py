@@ -3251,10 +3251,23 @@ class PIDM(QMainWindow):
 
         categories_root = QTreeWidgetItem(all_downloads_root, [self.tr("By Category")])
         categories_root.setIcon(0, QIcon.fromTheme("folder-open", QIcon("icons/categories.png")))
+
+        CATEGORY_ICONS = {
+            "Compressed": ("cat-compressed.svg", QColor("#FF9800")),  # orange
+            "Documents":  ("cat-documents.svg",  QColor("#2196F3")),  # blue
+            "Music":      ("cat-music.svg",       QColor("#9C27B0")),  # purple
+            "Videos":     ("cat-videos.svg",      QColor("#F44336")),  # red
+            "Programs":   ("cat-programs.svg",    QColor("#4CAF50")),  # green
+        }
+
         for cat_key in self.category_filters.keys():
             item = QTreeWidgetItem(categories_root, [self.tr(cat_key)])
             item.setData(0, Qt.UserRole, cat_key)
-            item.setIcon(0, QIcon.fromTheme(f"folder-{cat_key.lower()}", QIcon(f"icons/{cat_key.lower()}.png")))
+            if cat_key in CATEGORY_ICONS:
+                svg_file, color = CATEGORY_ICONS[cat_key]
+                item.setIcon(0, colored_icon_from_svg(get_asset_path(f"assets/icons/{svg_file}"), color))
+            else:
+                item.setIcon(0, QIcon.fromTheme(f"folder-{cat_key.lower()}"))
 
         queues_root = QTreeWidgetItem([self.tr("Queues")])
         queues_root.setData(0, Qt.UserRole, "queues_root_node")
