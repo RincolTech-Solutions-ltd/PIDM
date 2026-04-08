@@ -4399,28 +4399,40 @@ class PIDM(QMainWindow):
         self._refresh_toolbar_icons()
 
     def _refresh_toolbar_icons(self):
-        theme = self.settings.get("theme", "dark")
-        base_color = QColor("white") if theme == "dark" else QColor("black")
-        disabled_color = QColor("#888888")
+        disabled_color = QColor("#666666")
 
-        def icon(path, enabled):
-            return colored_icon_from_svg(path, base_color if enabled else disabled_color)
+        ICON_COLORS = {
+            "plus":               QColor("#4CAF50"),   # green  – Add URL
+            "player-play":        QColor("#4CAF50"),   # green  – Resume
+            "player-pause":       QColor("#FF9800"),   # orange – Pause
+            "player-track-next":  QColor("#2196F3"),   # blue   – Start Queue
+            "copy-x":             QColor("#F44336"),   # red    – Stop Queue
+            "trash-x":            QColor("#F44336"),   # red    – Remove Entry
+            "cancel":             QColor("#FF9800"),   # orange – Cancel D/L
+            "hand-stop":          QColor("#F44336"),   # red    – Stop All
+            "bug":                QColor("#FFC107"),   # amber  – Report Bugs
+            "donate":             QColor("#E91E63"),   # pink   – Donate
+        }
 
-        self.add_url_action.setIcon(icon(get_asset_path("assets/icons/plus.svg"), self.add_url_action.isEnabled()))
-        self.resume_action.setIcon(icon(get_asset_path("assets/icons/player-play.svg"), self.resume_action.isEnabled()))
-        self.pause_action.setIcon(icon(get_asset_path("assets/icons/player-pause.svg"), self.pause_action.isEnabled()))
+        def icon(path, icon_key, enabled):
+            color = ICON_COLORS.get(icon_key, QColor("white")) if enabled else disabled_color
+            return colored_icon_from_svg(path, color)
+
+        self.add_url_action.setIcon(icon(get_asset_path("assets/icons/plus.svg"), "plus", self.add_url_action.isEnabled()))
+        self.resume_action.setIcon(icon(get_asset_path("assets/icons/player-play.svg"), "player-play", self.resume_action.isEnabled()))
+        self.pause_action.setIcon(icon(get_asset_path("assets/icons/player-pause.svg"), "player-pause", self.pause_action.isEnabled()))
         self.start_queue_action.setIcon(
-            icon(get_asset_path("assets/icons/player-track-next.svg"), self.start_queue_action.isEnabled()))
+            icon(get_asset_path("assets/icons/player-track-next.svg"), "player-track-next", self.start_queue_action.isEnabled()))
         self.stop_queue_action.setIcon(
-            icon(get_asset_path("assets/icons/copy-x.svg"), self.stop_queue_action.isEnabled()))
+            icon(get_asset_path("assets/icons/copy-x.svg"), "copy-x", self.stop_queue_action.isEnabled()))
         self.remove_entry_action.setIcon(
-            icon(get_asset_path("assets/icons/trash-x.svg"), self.remove_entry_action.isEnabled()))
+            icon(get_asset_path("assets/icons/trash-x.svg"), "trash-x", self.remove_entry_action.isEnabled()))
         self.cancel_dl_action.setIcon(
-            icon(get_asset_path("assets/icons/cancel.svg"), self.cancel_dl_action.isEnabled()))
+            icon(get_asset_path("assets/icons/cancel.svg"), "cancel", self.cancel_dl_action.isEnabled()))
         self.stop_all_action.setIcon(
-            icon(get_asset_path("assets/icons/hand-stop.svg"), self.stop_all_action.isEnabled()))
-        self.report_bug_action.setIcon(icon(get_asset_path("assets/icons/bug.svg"), self.report_bug_action.isEnabled()))
-        self.donate_action.setIcon(icon(get_asset_path("assets/icons/donate.svg"), self.donate_action.isEnabled()))
+            icon(get_asset_path("assets/icons/hand-stop.svg"), "hand-stop", self.stop_all_action.isEnabled()))
+        self.report_bug_action.setIcon(icon(get_asset_path("assets/icons/bug.svg"), "bug", self.report_bug_action.isEnabled()))
+        self.donate_action.setIcon(icon(get_asset_path("assets/icons/donate.svg"), "donate", self.donate_action.isEnabled()))
 
     def show_options_dialog(self):
         QMessageBox.information(self, self.tr("Options"), self.tr("Options dialog is not yet implemented."))
