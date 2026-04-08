@@ -4472,7 +4472,7 @@ class PIDM(QMainWindow):
         # Footer
         footer = QLabel(self.tr(
             "<hr><p align='center'>Created with ❤️ by "
-            "<a href='https://saeedmasoudie.ir'>Saeed Masoudi</a></p>"
+            "<a href='https://github.com/Lovepankie'>gEniu$ 🤓🧑‍🏫👨‍🔬👨‍💻👨‍🔧</a></p>"
         ))
         footer.setOpenExternalLinks(True)
         footer.setAlignment(Qt.AlignCenter)
