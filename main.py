@@ -3237,7 +3237,7 @@ class PIDM(QMainWindow):
         self.category_tree.addTopLevelItem(all_downloads_root)
 
         status_root = QTreeWidgetItem(all_downloads_root, [self.tr("By Status")])
-        status_root.setIcon(0, QIcon.fromTheme("document-properties", QIcon("icons/status.png")))
+        status_root.setIcon(0, colored_icon_from_svg(get_asset_path("assets/icons/by-status.svg"), QColor("#64B5F6")))
 
         STATUS_ICONS = {
             STATUS_DOWNLOADING: ("status-downloading.svg", QColor("#2196F3")),  # blue
@@ -3262,7 +3262,7 @@ class PIDM(QMainWindow):
                 item.setIcon(0, QIcon.fromTheme(f"task-{status_key}"))
 
         categories_root = QTreeWidgetItem(all_downloads_root, [self.tr("By Category")])
-        categories_root.setIcon(0, QIcon.fromTheme("folder-open", QIcon("icons/categories.png")))
+        categories_root.setIcon(0, colored_icon_from_svg(get_asset_path("assets/icons/by-category.svg"), QColor("#FFD54F")))
 
         CATEGORY_ICONS = {
             "Compressed": ("cat-compressed.svg", QColor("#FF9800")),  # orange
