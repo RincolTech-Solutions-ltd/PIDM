@@ -3047,7 +3047,7 @@ class PIDM(QMainWindow):
 
         self.report_bug_action = QAction(self.tr("Report Bugs"), self)
         self.report_bug_action.triggered.connect(
-            lambda: QDesktopServices.openUrl(QUrl("https://github.com/saeedmasoudie/PIDM/issues"))
+            lambda: QDesktopServices.openUrl(QUrl("https://github.com/Lovepankie/PIDM/issues"))
         )
         self.report_bug_action.setToolTip(self.tr("Report a bug or suggest a feature"))
 
