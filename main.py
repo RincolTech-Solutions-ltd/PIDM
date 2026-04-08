@@ -3238,16 +3238,28 @@ class PIDM(QMainWindow):
 
         status_root = QTreeWidgetItem(all_downloads_root, [self.tr("By Status")])
         status_root.setIcon(0, QIcon.fromTheme("document-properties", QIcon("icons/status.png")))
+
+        STATUS_ICONS = {
+            STATUS_DOWNLOADING: ("status-downloading.svg", QColor("#2196F3")),  # blue
+            STATUS_QUEUED:      ("status-queued.svg",      QColor("#FF9800")),  # orange
+            STATUS_PAUSED:      ("status-paused.svg",      QColor("#9C27B0")),  # purple
+            STATUS_COMPLETE:    ("status-complete.svg",    QColor("#4CAF50")),  # green
+            STATUS_ERROR:       ("status-error.svg",       QColor("#F44336")),  # red
+            STATUS_YTDLP:       ("status-streaming.svg",   QColor("#00BCD4")),  # cyan
+        }
+
         for status_key, display_name_func in [
             (STATUS_DOWNLOADING, lambda: self.tr("Downloading")), (STATUS_QUEUED, lambda: self.tr("Queued")),
             (STATUS_PAUSED, lambda: self.tr("Paused")), (STATUS_COMPLETE, lambda: self.tr("Finished")),
             (STATUS_ERROR, lambda: self.tr("Error/Incomplete")), (STATUS_YTDLP, lambda: self.tr("Streaming"))
-            # New status
         ]:
             item = QTreeWidgetItem(status_root, [display_name_func()])
             item.setData(0, Qt.UserRole, status_key)
-            item.setIcon(0,
-                         QIcon.fromTheme(f"task-{status_key}", QIcon(f"icons/{status_key}.png")))
+            if status_key in STATUS_ICONS:
+                svg_file, color = STATUS_ICONS[status_key]
+                item.setIcon(0, colored_icon_from_svg(get_asset_path(f"assets/icons/{svg_file}"), color))
+            else:
+                item.setIcon(0, QIcon.fromTheme(f"task-{status_key}"))
 
         categories_root = QTreeWidgetItem(all_downloads_root, [self.tr("By Category")])
         categories_root.setIcon(0, QIcon.fromTheme("folder-open", QIcon("icons/categories.png")))
