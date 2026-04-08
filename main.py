@@ -1590,7 +1590,7 @@ class UpdateCheckThread(QThread):
     def __init__(self, current_version: str, parent=None):
         super().__init__(parent)
         self.current_version = current_version
-        self.repo_api_url = "https://api.github.com/repos/saeedmasoudie/PIDM/releases/latest"
+        self.repo_api_url = "https://api.github.com/repos/Lovepankie/PIDM/releases/latest"
 
     def run(self):
         try:
@@ -1601,7 +1601,7 @@ class UpdateCheckThread(QThread):
 
                 data = response.json()
                 latest_version = data["tag_name"].lstrip("v")
-                release_url = data.get("html_url", "https://github.com/saeedmasoudie/PIDM/releases")
+                release_url = data.get("html_url", "https://github.com/Lovepankie/PIDM/releases")
 
                 if latest_version > self.current_version:
                     self.update_available.emit(latest_version, release_url)
@@ -4468,9 +4468,9 @@ class PIDM(QMainWindow):
             "<p>It features a smart and theme-aware interface, supports stream downloads, "
             "browser integration, scheduling, multilingual UI, speed limits, and more.</p>"
             "<p align='center'>"
-            "🔗 <a href='https://github.com/saeedmasoudie/PIDM'>GitHub Repository</a><br>"
-            "🔗 <a href='https://github.com/saeedmasoudie/PIDM-ext'>Browser Extension</a><br>"
-            "🔗 <a href='https://github.com/saeedmasoudie/PIDM/releases'>Latest Releases</a>"
+            "🔗 <a href='https://github.com/Lovepankie/PIDM'>GitHub Repository</a><br>"
+            "🔗 <a href='https://github.com/Lovepankie/PIDM-ext'>Browser Extension</a><br>"
+            "🔗 <a href='https://github.com/Lovepankie/PIDM/releases'>Latest Releases</a>"
             "</p>"
         ))
         description.setWordWrap(True)
