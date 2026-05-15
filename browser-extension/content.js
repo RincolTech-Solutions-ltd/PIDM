@@ -151,7 +151,9 @@
     if (!location.pathname.startsWith('/watch')) return;
     if (document.getElementById('pidm-yt-btn')) return;
 
-    const actionsRow = document.querySelector('#actions-inner #menu, ytd-menu-renderer');
+    const actionsRow = document.querySelector(
+      'ytd-watch-metadata #actions, #actions-inner #menu, ytd-menu-renderer, #top-level-buttons-computed'
+    );
     if (!actionsRow) return;
 
     const btn = document.createElement('button');

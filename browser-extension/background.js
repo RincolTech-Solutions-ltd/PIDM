@@ -86,9 +86,12 @@ async function sendToPIDM(downloadInfo) {
 }
 
 // ── Track intercepted downloads per tab ─────────────────────────────────────
+// Use chrome.storage.local for cross-browser compatibility (session not supported in Firefox MV3)
+const storage = chrome.storage.local;
+
 async function getTabDownloads(tabId) {
   const key = `tab_${tabId}`;
-  const result = await chrome.storage.session.get(key);
+  const result = await storage.get(key);
   return result[key] || [];
 }
 
@@ -96,14 +99,14 @@ async function addTabDownload(tabId, item) {
   const downloads = await getTabDownloads(tabId);
   if (!downloads.find(d => d.url === item.url)) {
     downloads.push(item);
-    await chrome.storage.session.set({ [`tab_${tabId}`]: downloads });
+    await storage.set({ [`tab_${tabId}`]: downloads });
     chrome.action.setBadgeText({ text: String(downloads.length), tabId });
     chrome.action.setBadgeBackgroundColor({ color: '#e94560', tabId });
   }
 }
 
 async function clearTabDownloads(tabId) {
-  await chrome.storage.session.remove(`tab_${tabId}`);
+  await storage.remove(`tab_${tabId}`);
   chrome.action.setBadgeText({ text: '', tabId });
 }
 

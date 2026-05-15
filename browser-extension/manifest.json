@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
   "name": "PIDM Download Helper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Capture download links and send them to PIDM — supports YouTube, videos, audio, files and more.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "pidm@rincol.tech",
+      "strict_min_version": "128.0"
+    }
+  },
   "permissions": [
     "webRequest",
     "tabs",
