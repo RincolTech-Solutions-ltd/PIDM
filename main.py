@@ -3,6 +3,7 @@ import logging
 import mimetypes
 import platform
 import re
+import shutil
 import signal
 import subprocess
 import threading
@@ -864,13 +865,26 @@ class DownloadWorker(QThread):
 
         ffmpeg_path = ""
         try:
-            base_path = Path(sys.argv[0]).parent
-            potential_path = base_path / "bin" / "ffmpeg.exe"
-            if potential_path.exists():
-                ffmpeg_path = str(potential_path)
-                logger.info(f"Found ffmpeg at: {ffmpeg_path}")
+            if sys.platform == "win32":
+                base_path = Path(sys.argv[0]).parent
+                potential_path = base_path / "bin" / "ffmpeg.exe"
+                if potential_path.exists():
+                    ffmpeg_path = str(potential_path)
+                    logger.info(f"Found bundled ffmpeg at: {ffmpeg_path}")
+                else:
+                    system_ffmpeg = shutil.which("ffmpeg")
+                    if system_ffmpeg:
+                        ffmpeg_path = system_ffmpeg
+                        logger.info(f"Found system ffmpeg at: {ffmpeg_path}")
+                    else:
+                        logger.warning("ffmpeg not found. Install it or place ffmpeg.exe in the 'bin' folder.")
             else:
-                logger.warning("ffmpeg.exe not found in 'bin' directory.")
+                system_ffmpeg = shutil.which("ffmpeg")
+                if system_ffmpeg:
+                    ffmpeg_path = system_ffmpeg
+                    logger.info(f"Found system ffmpeg at: {ffmpeg_path}")
+                else:
+                    logger.warning("ffmpeg not found in PATH. Install with: sudo apt install ffmpeg")
         except Exception as e:
             logger.error(f"Could not determine ffmpeg path: {e}")
 
@@ -4521,9 +4535,35 @@ class PIDM(QMainWindow):
     def show_extension_dialog(self):
         ext_path = str(Path(__file__).parent / "browser-extension")
 
+        def open_browser_ext_page(browser):
+            urls = {
+                'chrome':    ('chrome://extensions',                   ['google-chrome', 'google-chrome-stable']),
+                'chromium':  ('chrome://extensions',                   ['chromium-browser', 'chromium']),
+                'edge':      ('edge://extensions',                     ['microsoft-edge', 'microsoft-edge-stable']),
+                'firefox':   ('about:debugging#/runtime/this-firefox', ['firefox']),
+            }
+            url, bins = urls.get(browser, (None, []))
+            if not url:
+                return
+            if sys.platform != "win32":
+                for b in bins:
+                    found = shutil.which(b)
+                    if found:
+                        subprocess.Popen([found, url], start_new_session=True)
+                        return
+            QDesktopServices.openUrl(QUrl(url))
+
+        def open_ext_folder():
+            if sys.platform == "win32":
+                subprocess.Popen(['explorer', ext_path])
+            elif sys.platform == "darwin":
+                subprocess.Popen(['open', ext_path])
+            else:
+                subprocess.Popen(['xdg-open', ext_path])
+
         dialog = QDialog(self)
         dialog.setWindowTitle(self.tr("Install Browser Extension"))
-        dialog.setMinimumWidth(480)
+        dialog.setMinimumWidth(500)
         layout = QVBoxLayout(dialog)
         layout.setSpacing(12)
         layout.setContentsMargins(18, 18, 18, 18)
@@ -4552,6 +4592,9 @@ class PIDM(QMainWindow):
         copy_btn.setFixedWidth(60)
         copy_btn.clicked.connect(lambda: QApplication.clipboard().setText(ext_path))
         path_row.addWidget(copy_btn)
+        open_folder_btn = QPushButton(self.tr("Open Folder"))
+        open_folder_btn.clicked.connect(open_ext_folder)
+        path_row.addWidget(open_folder_btn)
         layout.addLayout(path_row)
 
         layout.addWidget(QLabel("<hr>"))
@@ -4563,23 +4606,26 @@ class PIDM(QMainWindow):
         btn_layout = QHBoxLayout()
 
         chrome_btn = QPushButton("🌐 Chrome")
-        chrome_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("chrome://extensions")))
+        chrome_btn.clicked.connect(lambda: open_browser_ext_page('chrome'))
         btn_layout.addWidget(chrome_btn)
 
+        chromium_btn = QPushButton("🔵 Chromium")
+        chromium_btn.clicked.connect(lambda: open_browser_ext_page('chromium'))
+        btn_layout.addWidget(chromium_btn)
+
         edge_btn = QPushButton("🌀 Edge")
-        edge_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("edge://extensions")))
+        edge_btn.clicked.connect(lambda: open_browser_ext_page('edge'))
         btn_layout.addWidget(edge_btn)
 
         firefox_btn = QPushButton("🦊 Firefox")
-        firefox_btn.clicked.connect(lambda: QDesktopServices.openUrl(
-            QUrl("about:debugging#/runtime/this-firefox")))
+        firefox_btn.clicked.connect(lambda: open_browser_ext_page('firefox'))
         btn_layout.addWidget(firefox_btn)
 
         layout.addLayout(btn_layout)
 
         steps = QLabel(self.tr(
-            "<b>Chrome / Edge steps:</b><br>"
-            "1. Click the button above to open extensions page<br>"
+            "<b>Chrome / Chromium / Edge steps:</b><br>"
+            "1. Click the button above to open the extensions page<br>"
             "2. Enable <b>Developer mode</b> (top right toggle)<br>"
             "3. Click <b>Load unpacked</b><br>"
             "4. Select the folder path shown above<br><br>"
@@ -4818,6 +4864,28 @@ def guess_filename_from_url(url: str) -> str:
     return name if name else "downloaded_file"
 
 
+def check_ffmpeg_available():
+    if shutil.which("ffmpeg"):
+        return
+    if sys.platform == "win32":
+        bin_ffmpeg = Path(sys.argv[0]).parent / "bin" / "ffmpeg.exe"
+        if bin_ffmpeg.exists():
+            return
+        msg = (
+            "ffmpeg was not found.\n\n"
+            "YouTube downloads that combine video and audio (1080p+) require ffmpeg.\n\n"
+            "Place ffmpeg.exe inside the 'bin' folder next to PIDM, or install it\n"
+            "and add it to your system PATH."
+        )
+    else:
+        msg = (
+            "ffmpeg was not found on your system.\n\n"
+            "YouTube downloads that combine video and audio (1080p+) require ffmpeg.\n\n"
+            "Install it with:\n    sudo apt install ffmpeg"
+        )
+    QMessageBox.warning(None, "ffmpeg Not Found", msg)
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     settings = SettingsManager()
@@ -4850,4 +4918,5 @@ if __name__ == "__main__":
         sys.exit(0)
 
     win.show()
+    check_ffmpeg_available()
     sys.exit(app.exec())
