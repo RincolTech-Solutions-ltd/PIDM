@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIDM Download Helper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <img src="icons/icon48.png" alt="PIDM" class="logo">
+    <div class="header-text">
+      <div class="title">PIDM Download Helper</div>
+      <div class="status-row">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Checking...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Current Page</div>
+    <button class="btn btn-primary" id="dl-page-btn">⬇ Download This Page</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Detected Downloads <span class="badge" id="dl-count">0</span></div>
+    <div id="dl-list" class="dl-list">
+      <div class="empty-msg">No downloads detected yet</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Manual URL</div>
+    <div class="input-row">
+      <input type="text" id="manual-url" placeholder="Paste URL here..." class="url-input">
+      <button class="btn btn-accent" id="manual-send-btn">Send</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://github.com/Lovepankie/PIDM" target="_blank">github.com/Lovepankie/PIDM</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
