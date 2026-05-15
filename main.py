@@ -896,6 +896,10 @@ class DownloadWorker(QThread):
             '-f', download_format,
             '-o', str(self.save_path), self.url
         ]
+        # Use tv+web clients for YouTube to avoid SABR streaming (forces direct URLs)
+        parsed_host = urlparse(self.url).hostname or ''
+        if 'youtube.com' in parsed_host or 'youtu.be' in parsed_host:
+            ydl_opts.extend(['--extractor-args', 'youtube:player_client=tv,web'])
         if ffmpeg_path:
             ydl_opts.extend(['--ffmpeg-location', ffmpeg_path])
 
@@ -1312,7 +1316,56 @@ class MetadataFetcher(QThread):
         self.custom_headers = custom_headers if custom_headers is not None else {}
         self.is_stream = False  # New flag to indicate if it's a stream
 
+    _KNOWN_STREAM_HOSTS = frozenset([
+        'youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv',
+        'dailymotion.com', 'tiktok.com', 'instagram.com',
+        'twitter.com', 'x.com', 'soundcloud.com', 'facebook.com',
+    ])
+
+    def _is_known_stream_host(self, url):
+        try:
+            host = (urlparse(url).hostname or '').replace('www.', '')
+            return any(host == s or host.endswith('.' + s) for s in self._KNOWN_STREAM_HOSTS)
+        except Exception:
+            return False
+
+    def _emit_stream_result(self, info, url):
+        self.is_stream = True
+        filename = info.get('title', guess_filename_from_url(url)) if info else guess_filename_from_url(url)
+        if info and 'ext' in info:
+            filename = f"{filename}.{info['ext']}"
+        clean_formats = []
+        for fmt in (info.get("formats", []) if info else []):
+            if fmt.get("vcodec", "none") != "none":
+                label = self._format_resolution_label(fmt)
+                clean_formats.append({
+                    "format_id": fmt.get("format_id"),
+                    "ext": fmt.get("ext"),
+                    "filesize": fmt.get("filesize") or fmt.get("filesize_approx"),
+                    "resolution": label,
+                    "format_note": fmt.get("format_note", ""),
+                })
+        self.result.emit({
+            "content_length": (info.get('filesize') or info.get('filesize_approx') or 0) if info else 0,
+            "content_type": "video/stream",
+            "filename": filename,
+            "final_url": url,
+            "is_stream": True,
+            "formats": clean_formats,
+        })
+
     def run(self):
+        # Fast-path: known streaming sites never fall through to HTTP fetch
+        if self._is_known_stream_host(self.original_url):
+            logger.info(f"[MetadataFetcher] Known stream host — using yt-dlp for {self.original_url}")
+            try:
+                info = self._get_ytdlp_info(self.original_url)
+            except Exception as e:
+                logger.warning(f"[MetadataFetcher] yt-dlp info failed for stream host: {e}")
+                info = None
+            self._emit_stream_result(info, self.original_url)
+            return
+
         try:
             info = self._get_ytdlp_info(self.original_url)
             is_ytdlp_stream = False
@@ -1328,36 +1381,8 @@ class MetadataFetcher(QThread):
             if is_ytdlp_stream:
                 logger.info(
                     f"yt-dlp identified a stream. Protocol: {info.get('protocol')}, Extractor: {info.get('extractor_key')}")
-                self.is_stream = True
-
-                filename = info.get('title', guess_filename_from_url(self.original_url))
-                if 'ext' in info:
-                    filename = f"{filename}.{info['ext']}"
-
-                # Build a list of cleaned-up formats for quality selection
-                clean_formats = []
-                for fmt in info.get("formats", []):
-                    if fmt.get("vcodec", "none") != "none":
-                        label = self._format_resolution_label(fmt)
-                        clean_formats.append({
-                            "format_id": fmt.get("format_id"),
-                            "ext": fmt.get("ext"),
-                            "filesize": fmt.get("filesize") or fmt.get("filesize_approx"),
-                            "resolution": label,
-                            "format_note": fmt.get("format_note", ""),
-                        })
-
-                # Emit full metadata including formats
-                self.result.emit({
-                    "content_length": info.get('filesize') or info.get('filesize_approx') or 0,
-                    "content_type": "video/stream",
-                    "filename": filename,
-                    "final_url": self.original_url,
-                    "is_stream": True,
-                    "formats": clean_formats
-                })
+                self._emit_stream_result(info, self.original_url)
                 return
-
             else:
                 logger.debug("yt-dlp did not identify a specific stream. Proceeding with standard HTTP fetch.")
 
