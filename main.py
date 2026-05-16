@@ -890,11 +890,12 @@ class DownloadWorker(QThread):
 
         download_format = self.selected_format_id or 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
 
+        output_path = str(self.save_path.parent / '%(title)s.%(ext)s')
         ydl_opts = [
             sys.executable, '-m', 'yt_dlp', '--no-warnings', '--progress-template',
             '%(progress.status)s,%(progress.downloaded_bytes)s,%(progress.total_bytes)s,%(progress.speed)s,%(progress.eta)s,%(progress.fragment_index)s,%(progress.fragment_count)s\n',
             '-f', download_format,
-            '-o', str(self.save_path), self.url
+            '-o', output_path, self.url
         ]
         # Use tv+web clients for YouTube to avoid SABR streaming (forces direct URLs)
         parsed_host = urlparse(self.url).hostname or ''
@@ -1307,7 +1308,7 @@ class MetadataFetcher(QThread):
     error = Signal(str)
     timeout = Signal()
 
-    def __init__(self, url, auth=None, max_seconds=10, custom_headers=None):
+    def __init__(self, url, auth=None, max_seconds=20, custom_headers=None):
         super().__init__()
         self.original_url = url.strip()
         self.auth = auth
@@ -1322,10 +1323,29 @@ class MetadataFetcher(QThread):
         'twitter.com', 'x.com', 'soundcloud.com', 'facebook.com',
     ])
 
+    _YOUTUBE_HOSTS = frozenset(['youtube.com', 'youtu.be'])
+
+    _HARDCODED_YOUTUBE_FORMATS = [
+        {"format_id": "bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio/best", "ext": "mp4", "filesize": None, "resolution": "4K",    "format_note": ""},
+        {"format_id": "bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1440]+bestaudio/best", "ext": "mp4", "filesize": None, "resolution": "1440p", "format_note": ""},
+        {"format_id": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best", "ext": "mp4", "filesize": None, "resolution": "1080p", "format_note": ""},
+        {"format_id": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best",   "ext": "mp4", "filesize": None, "resolution": "720p",  "format_note": ""},
+        {"format_id": "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/best",   "ext": "mp4", "filesize": None, "resolution": "480p",  "format_note": ""},
+        {"format_id": "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/best",   "ext": "mp4", "filesize": None, "resolution": "360p",  "format_note": ""},
+        {"format_id": "bestvideo[height<=240][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=240]+bestaudio/best",   "ext": "mp4", "filesize": None, "resolution": "240p",  "format_note": ""},
+    ]
+
     def _is_known_stream_host(self, url):
         try:
             host = (urlparse(url).hostname or '').replace('www.', '')
             return any(host == s or host.endswith('.' + s) for s in self._KNOWN_STREAM_HOSTS)
+        except Exception:
+            return False
+
+    def _is_youtube(self, url):
+        try:
+            host = (urlparse(url).hostname or '').replace('www.', '')
+            return any(host == s or host.endswith('.' + s) for s in self._YOUTUBE_HOSTS)
         except Exception:
             return False
 
@@ -1354,8 +1374,36 @@ class MetadataFetcher(QThread):
             "formats": clean_formats,
         })
 
+    def _fetch_youtube_title(self, url):
+        try:
+            resp = httpx.get(
+                "https://www.youtube.com/oembed",
+                params={"url": url, "format": "json"},
+                timeout=5.0
+            )
+            if resp.status_code == 200:
+                return resp.json().get("title", "YouTube Video")
+        except Exception:
+            pass
+        return "YouTube Video"
+
     def run(self):
-        # Fast-path: known streaming sites never fall through to HTTP fetch
+        # YouTube fast-path: use oEmbed for instant title, skip slow yt-dlp API
+        if self._is_youtube(self.original_url):
+            logger.info(f"[MetadataFetcher] YouTube URL — fetching title via oEmbed")
+            self.is_stream = True
+            title = self._fetch_youtube_title(self.original_url)
+            self.result.emit({
+                "content_length": 0,
+                "content_type": "video/stream",
+                "filename": title,
+                "final_url": self.original_url,
+                "is_stream": True,
+                "formats": self._HARDCODED_YOUTUBE_FORMATS,
+            })
+            return
+
+        # Fast-path: other known streaming sites
         if self._is_known_stream_host(self.original_url):
             logger.info(f"[MetadataFetcher] Known stream host — using yt-dlp for {self.original_url}")
             try:
@@ -1445,6 +1493,8 @@ class MetadataFetcher(QThread):
                 'no_warnings': True,
                 'simulate': True,
                 'force_generic_extractor': False,
+                'socket_timeout': 15,
+                'extractor_args': {'youtube': {'player_client': ['tv', 'web']}},
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
